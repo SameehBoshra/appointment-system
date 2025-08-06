@@ -14,6 +14,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Hash;
 
 class UserResource extends Resource
 {
@@ -25,6 +26,15 @@ class UserResource extends Resource
     {
         return static::getModel()::count();
     }
+    public static function canCreate(): bool
+{
+    return auth()->user()?->name === 'Admin';
+}
+public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+{
+    return parent::getEloquentQuery()
+        ->where('name', '!=', 'Admin'); // أو اسمك الحقيقي
+}
     public static function form(Form $form): Form
     {
         return $form
@@ -44,11 +54,22 @@ class UserResource extends Resource
                         ->maxLength(255)
                         ->minLength(5)
                         ->unique(User::class, 'email', ignoreRecord: true),
-                    TextInput::make('password')
-                    ->required()
-                    ->password()
-                    ->minLength(6)
-                    ->maxLength(255),
+                 TextInput::make('password')
+    ->required()
+    ->password()
+    ->minLength(6)
+    ->maxLength(255)
+    ->dehydrateStateUsing(fn($state) => Hash::make($state))
+    ->dehydrated(fn($state) => filled($state)),
+
+TextInput::make('password_confirmation')
+    ->label('Confirm Password')
+    ->required()
+    ->password()
+    ->same('password')
+    ->minLength(6)
+    ->maxLength(255)
+    ->dehydrated(false),
 
             ])->columns(3),
 
